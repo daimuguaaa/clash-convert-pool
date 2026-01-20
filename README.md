@@ -83,7 +83,7 @@ services:
 
 ### `GET` /api/proxies/active
 
-获取所有可用的代理节点列表（延迟小于5秒的），返回包含服务器IP、本地端口、认证信息等详细数据的JSON数组。
+获取所有可用的代理节点列表（延迟小于5秒的健康代理），返回包含服务器IP、本地端口、认证信息等详细数据的JSON数组。
 
 ```bash
 curl -X GET "http://localhost:8000/api/proxies/active" \
@@ -92,16 +92,27 @@ curl -X GET "http://localhost:8000/api/proxies/active" \
 
 ### `GET` /api/proxies/active/random
 
-随机获取一个可用的代理节点，返回单个节点详情。
+随机获取一个可用的代理节点（延迟小于5秒的健康代理），返回单个节点详情。
 
 ```bash
 curl -X GET "http://localhost:8000/api/proxies/active/random" \
   -H "Authorization: <token>"
 ```
 
+### `GET` /api/proxies/all
+
+获取所有已开启的代理节点（不管健康状态），返回包含延迟和健康状态的完整信息。
+
+```bash
+curl -X GET "http://localhost:8000/api/proxies/all" \
+  -H "Authorization: <token>"
+```
+
 ### 响应数据结构示例
 
 > Token 可在系统设置 - 认证配置中查看
+
+**`/api/proxies/active` 和 `/api/proxies/active/random` 响应格式：**
 
 ```json
 {
@@ -115,6 +126,25 @@ curl -X GET "http://localhost:8000/api/proxies/active/random" \
   "tag_name": "VIP",               // 标签名称
   "node_name": "US Node 01",       // 节点名称
   "protocol": "vmess"              // 原协议
+}
+```
+
+**`/api/proxies/all` 响应格式（额外包含延迟和状态）：**
+
+```json
+{
+  "host_ip": "192.168.1.100",
+  "local_port": 10001,
+  "remark": "香港节点01",
+  "server_info": "us.example.com",
+  "auth_username": "user",
+  "auth_password": "pass",
+  "group_name": "默认分组",
+  "tag_name": "VIP",
+  "node_name": "US Node 01",
+  "protocol": "vmess",
+  "latency": 256,                  // 延迟（毫秒），-1 表示未检测
+  "health_status": "healthy"       // 健康状态：healthy/unhealthy/unknown
 }
 ```
 

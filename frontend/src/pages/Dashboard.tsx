@@ -225,7 +225,7 @@ export const DashboardPage: React.FC = () => {
                             <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded">GET</span>
                             <code className="text-sm font-semibold text-gray-800">/api/proxies/active</code>
                         </div>
-                        <p className="text-sm text-secondary mb-3">获取所有可用的代理节点列表。返回包含服务器IP、本地端口、认证信息等详细数据的JSON数组。</p>
+                        <p className="text-sm text-secondary mb-3">获取所有可用的代理节点列表（延迟小于5秒的健康代理）。返回包含服务器IP、本地端口、认证信息等详细数据的JSON数组。</p>
                         <div className="bg-gray-900 rounded-md p-4 group relative">
                             <pre className="text-xs font-mono text-gray-300 overflow-x-auto">
                                 {`curl -X GET "${window.location.origin}/api/proxies/active" \\
@@ -239,10 +239,24 @@ export const DashboardPage: React.FC = () => {
                             <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded">GET</span>
                             <code className="text-sm font-semibold text-gray-800">/api/proxies/active/random</code>
                         </div>
-                        <p className="text-sm text-secondary mb-3">随机获取一个可用的代理节点。返回单个节点详情。</p>
+                        <p className="text-sm text-secondary mb-3">随机获取一个可用的代理节点（延迟小于5秒的健康代理）。返回单个节点详情。</p>
                         <div className="bg-gray-900 rounded-md p-4 group relative">
                             <pre className="text-xs font-mono text-gray-300 overflow-x-auto">
                                 {`curl -X GET "${window.location.origin}/api/proxies/active/random" \\
+  -H "Authorization: <token>"`}
+                            </pre>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded">GET</span>
+                            <code className="text-sm font-semibold text-gray-800">/api/proxies/all</code>
+                        </div>
+                        <p className="text-sm text-secondary mb-3">获取所有已开启的代理节点（不管健康状态）。返回包含延迟和健康状态的完整信息。</p>
+                        <div className="bg-gray-900 rounded-md p-4 group relative">
+                            <pre className="text-xs font-mono text-gray-300 overflow-x-auto">
+                                {`curl -X GET "${window.location.origin}/api/proxies/all" \\
   -H "Authorization: <token>"`}
                             </pre>
                         </div>
@@ -255,7 +269,8 @@ export const DashboardPage: React.FC = () => {
                                 Token 可在系统设置 - 认证配置中查看
                             </span>
                         </div>
-                        <pre className="text-xs font-mono text-secondary overflow-x-auto whitespace-pre-wrap">
+                        <p className="text-xs text-secondary mb-2">/api/proxies/active 和 /api/proxies/active/random 响应格式：</p>
+                        <pre className="text-xs font-mono text-secondary overflow-x-auto whitespace-pre-wrap mb-4">
                             {`{
   "host_ip": "192.168.1.100",      // 当前服务器IP
   "local_port": 10001,             // 代理监听端口
@@ -267,6 +282,23 @@ export const DashboardPage: React.FC = () => {
   "tag_name": "VIP",               // 标签名称
   "node_name": "US Node 01",       // 节点名称
   "protocol": "vmess"              // 原协议
+}`}
+                        </pre>
+                        <p className="text-xs text-secondary mb-2">/api/proxies/all 响应格式（额外包含延迟和状态）：</p>
+                        <pre className="text-xs font-mono text-secondary overflow-x-auto whitespace-pre-wrap">
+                            {`{
+  "host_ip": "192.168.1.100",
+  "local_port": 10001,
+  "remark": "美国节点01",
+  "server_info": "us.example.com",
+  "auth_username": "user",
+  "auth_password": "pass",
+  "group_name": "默认分组",
+  "tag_name": "VIP",
+  "node_name": "US Node 01",
+  "protocol": "vmess",
+  "latency": 256,                  // 延迟（毫秒），-1 表示未检测
+  "health_status": "healthy"       // 健康状态：healthy/unhealthy/unknown
 }`}
                         </pre>
                     </div>

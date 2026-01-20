@@ -920,6 +920,22 @@ type ExportProxyNode struct {
 	Protocol     string `json:"protocol"`
 }
 
+// ExportProxyNodeWithLatency 导出节点模型（包含延迟信息）
+type ExportProxyNodeWithLatency struct {
+	HostIP       string `json:"host_ip"`
+	LocalPort    int    `json:"local_port"`
+	Remark       string `json:"remark"`
+	ServerInfo   string `json:"server_info"`
+	AuthUsername string `json:"auth_username"`
+	AuthPassword string `json:"auth_password"`
+	GroupName    string `json:"group_name"`
+	TagName      string `json:"tag_name"`
+	NodeName     string `json:"node_name"`
+	Protocol     string `json:"protocol"`
+	Latency      int    `json:"latency"`       // 代理延迟（毫秒），-1 表示未检测
+	HealthStatus string `json:"health_status"` // 健康状态：healthy/unhealthy/unknown
+}
+
 // getHostIP 获取当前服务器IP
 func getHostIP(c *gin.Context) string {
 	host := c.Request.Host
@@ -1012,4 +1028,64 @@ func GetRandomAvailableProxy(c *gin.Context) {
 	hostIP := getHostIP(c)
 
 	c.JSON(http.StatusOK, toExportNode(randomProxy, *settings, hostIP))
+}
+
+// toExportNodeWithLatency 转换为带延迟的导出模型
+func toExportNodeWithLatency(node models.ProxyNode, settings models.Settings, hostIP string) ExportProxyNodeWithLatency {
+	remark := ""
+	if node.Remark != nil {
+		remark = *node.Remark
+	}
+
+	authUser := ""
+	if settings.AuthUsername != nil {
+		authUser = *settings.AuthUsername
+	}
+
+	authPass := ""
+	if settings.AuthPassword != nil {
+		authPass = *settings.AuthPassword
+	}
+
+	localPort := 0
+	if node.LocalPort != nil {
+		localPort = *node.LocalPort
+	}
+
+	return ExportProxyNodeWithLatency{
+		HostIP:       hostIP,
+		LocalPort:    localPort,
+		Remark:       remark,
+		ServerInfo:   node.Server,
+		AuthUsername: authUser,
+		AuthPassword: authPass,
+		GroupName:    node.Group,
+		TagName:      node.Tag,
+		NodeName:     node.Name,
+		Protocol:     node.Protocol,
+		Latency:      node.ProxyLatency,
+		HealthStatus: node.HealthStatus,
+	}
+}
+
+// GetAllEnabledProxies 获取所有已开启的代理节点（不管健康状态）
+func GetAllEnabledProxies(c *gin.Context) {
+	db := database.GetDB()
+	var proxies []models.ProxyNode
+
+	// 查询所有已启用的节点（不管健康状态）
+	if err := db.Where("is_enabled = ? AND local_port IS NOT NULL", true).Find(&proxies).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	settings := services.GetOrCreateSettings()
+	hostIP := getHostIP(c)
+
+	exportList := make([]ExportProxyNodeWithLatency, 0, len(proxies))
+	for _, p := range proxies {
+		exportList = append(exportList, toExportNodeWithLatency(p, *settings, hostIP))
+	}
+
+	c.JSON(http.StatusOK, exportList)
 }

@@ -89,6 +89,7 @@ func main() {
 			authApi.DELETE("/proxies", handlers.DeleteProxies)
 			authApi.GET("/proxies/active", handlers.GetAvailableProxies)
 			authApi.GET("/proxies/active/random", handlers.GetRandomAvailableProxy)
+			authApi.GET("/proxies/all", handlers.GetAllEnabledProxies) // 获取所有已开启的代理（含延迟信息）
 			authApi.POST("/proxies/batch-enable", handlers.BatchEnableProxies)
 			authApi.POST("/proxies/batch-disable", handlers.BatchDisableProxies)
 			authApi.PUT("/proxies/batch-group", handlers.BatchUpdateGroup)
