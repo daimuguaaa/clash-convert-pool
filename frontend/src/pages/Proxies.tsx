@@ -12,7 +12,9 @@ interface EnabledProxy {
     local_port?: number;
     last_port?: number;  // 最后使用的端口
     is_enabled: boolean;
-    latency: number;
+    latency: number;  // 节点延迟（来自节点测速）
+    proxy_latency?: number;  // 代理延迟（来自健康检查）
+    health_status?: string;  // 健康状态: healthy/unhealthy/unknown
     server?: string;
     port?: number;
 }
@@ -394,12 +396,59 @@ export const ProxiesPage: React.FC = () => {
         }
     };
 
-    const StatusDot = ({ latency }: { latency: number }) => {
+    // 根据健康状态和延迟显示状态点
+    const StatusDot = ({ proxy }: { proxy: EnabledProxy }) => {
         let color = "bg-gray-300";
-        if (latency > 0) {
+        const latency = proxy.proxy_latency ?? -1;
+        if (proxy.health_status === 'healthy' && latency > 0) {
             color = latency < 200 ? "bg-success" : (latency < 500 ? "bg-warning" : "bg-error");
+        } else if (proxy.health_status === 'unhealthy') {
+            color = "bg-error";
         }
         return <span className={`w-2 h-2 rounded-full ${color} inline-block mr-2 flex-shrink-0`} />;
+    };
+
+    // 测试单个代理延迟（通过本地端口测试）
+    const handleTestLatency = async (id: number) => {
+        try {
+            const res = await fetch('/api/proxies/proxy-test', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ ids: [id] })
+            });
+            if (res.ok) {
+                showToast('success', '测速完成');
+                fetchProxies();
+            } else {
+                showToast('error', '测速失败');
+            }
+        } catch (e) {
+            showToast('error', '测速请求失败');
+        }
+    };
+
+    // 批量测试代理延迟（通过本地端口测试）
+    const handleBatchTestLatency = async () => {
+        if (selectedIds.size === 0) {
+            showToast('info', '请先选择要测速的代理');
+            return;
+        }
+        try {
+            const res = await fetch('/api/proxies/proxy-test', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ ids: Array.from(selectedIds) })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('success', data.message || '测速完成');
+                fetchProxies();
+            } else {
+                showToast('error', '测速失败');
+            }
+        } catch (e) {
+            showToast('error', '测速请求失败');
+        }
     };
 
     return (
@@ -408,7 +457,7 @@ export const ProxiesPage: React.FC = () => {
             <header className="flex justify-between items-center">
                 <div>
                     <h2 className="text-xl font-medium tracking-tight">代理管理</h2>
-                    <p className="text-sm text-secondary">管理已启用的代理服务</p>
+                    <p className="text-sm text-secondary">管理已启用的代理服务 · <span className="text-blue-500">系统每2分钟自动检测代理健康状态</span></p>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Toast 通知 - 内联显示 */}
@@ -469,15 +518,15 @@ export const ProxiesPage: React.FC = () => {
                 </div>
                 <div className="border border-border rounded-lg p-4 bg-white">
                     <p className="text-2xl font-semibold text-green-600">
-                        {proxies.filter(p => p.is_enabled && p.latency > 0 && p.latency < 500).length}
+                        {proxies.filter(p => p.is_enabled && p.health_status === 'healthy').length}
                     </p>
-                    <p className="text-sm text-secondary">延迟良好</p>
+                    <p className="text-sm text-secondary">健康良好</p>
                 </div>
                 <div className="border border-border rounded-lg p-4 bg-white">
                     <p className="text-2xl font-semibold text-orange-600">
-                        {proxies.filter(p => p.is_enabled && (p.latency === 0 || p.latency >= 500)).length}
+                        {proxies.filter(p => p.is_enabled && (p.health_status === 'unhealthy' || p.health_status === 'unknown')).length}
                     </p>
-                    <p className="text-sm text-secondary">延迟较高/超时</p>
+                    <p className="text-sm text-secondary">不健康/未检测</p>
                 </div>
             </div>
 
@@ -587,6 +636,13 @@ export const ProxiesPage: React.FC = () => {
                                 复制 SOCKS5
                             </button>
                             <button
+                                onClick={handleBatchTestLatency}
+                                className="px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors flex items-center gap-1"
+                            >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                批量测速
+                            </button>
+                            <button
                                 onClick={handleBatchStop}
                                 className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded hover:bg-orange-100 transition-colors flex items-center gap-1"
                             >
@@ -615,7 +671,7 @@ export const ProxiesPage: React.FC = () => {
 
             {/* 表格 */}
             <div className="w-full text-left">
-                <div className="grid grid-cols-12 gap-4 px-4 py-3 border-y border-border bg-sidebar text-xs font-medium text-secondary uppercase tracking-wider">
+                <div className="grid grid-cols-11 gap-4 px-4 py-3 border-y border-border bg-sidebar text-xs font-medium text-secondary uppercase tracking-wider">
                     <div className="col-span-1 flex items-center">
                         <button onClick={toggleSelectAll} className="p-1 hover:bg-gray-200 rounded">
                             {selectedIds.size === filtered.length && filtered.length > 0 ?
@@ -626,9 +682,8 @@ export const ProxiesPage: React.FC = () => {
                     <div className="col-span-2">服务器</div>
                     <div className="col-span-1">分组</div>
                     <div className="col-span-1">标签</div>
-                    <div className="col-span-1">备注</div>
                     <div className="col-span-2">节点名称</div>
-                    <div className="col-span-1">原协议</div>
+                    <div className="col-span-1">状态</div>
                     <div className="col-span-1">延迟</div>
                     <div className="col-span-1 text-right">操作</div>
                 </div>
@@ -642,7 +697,7 @@ export const ProxiesPage: React.FC = () => {
                         </div>
                     ) : (
                         paginatedData.map(proxy => (
-                            <div key={proxy.id} className="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors group">
+                            <div key={proxy.id} className="grid grid-cols-11 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors group">
                                 <div className="col-span-1">
                                     <button onClick={() => toggleSelect(proxy.id)} className="p-1 hover:bg-gray-200 rounded">
                                         {selectedIds.has(proxy.id) ?
@@ -696,28 +751,44 @@ export const ProxiesPage: React.FC = () => {
                                         {proxy.tag}
                                     </span>
                                 </div>
-                                <div className="col-span-1 text-sm text-secondary truncate" title={proxy.remark || proxy.name}>
-                                    {proxy.remark && proxy.remark !== proxy.name ? proxy.remark : '-'}
-                                </div>
                                 <div className="col-span-2 text-sm font-medium truncate flex items-center" title={proxy.name}>
-                                    <StatusDot latency={proxy.latency} />
-                                    {proxy.name}
-                                </div>
-                                <div className="col-span-1">
-                                    <span className="text-[10px] uppercase bg-gray-100 text-secondary px-1.5 py-0.5 rounded border border-gray-200">
+                                    <StatusDot proxy={proxy} />
+                                    <span className="truncate">{proxy.name}</span>
+                                    <span className="ml-1 text-[10px] uppercase bg-gray-100 text-secondary px-1 py-0.5 rounded border border-gray-200 flex-shrink-0">
                                         {proxy.protocol}
                                     </span>
                                 </div>
+                                <div className="col-span-1">
+                                    {proxy.is_enabled ? (
+                                        proxy.health_status === 'healthy' ? (
+                                            <span className="text-xs bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-200">健康</span>
+                                        ) : proxy.health_status === 'unhealthy' ? (
+                                            <span className="text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-200">异常</span>
+                                        ) : (
+                                            <span className="text-xs bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">未检测</span>
+                                        )
+                                    ) : (
+                                        <span className="text-xs bg-gray-50 text-gray-400 px-1.5 py-0.5 rounded border border-gray-200">已停止</span>
+                                    )}
+                                </div>
                                 <div className="col-span-1 text-sm font-mono text-secondary">
-                                    {proxy.latency > 0 ? `${proxy.latency}ms` : <span className="text-gray-300">-</span>}
+                                    {(proxy.proxy_latency ?? -1) > 0 ? `${proxy.proxy_latency}ms` : <span className="text-gray-300">-</span>}
                                 </div>
                                 <div className="col-span-1 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {proxy.is_enabled && (
+                                        <button
+                                            onClick={() => handleTestLatency(proxy.id)}
+                                            className="p-1.5 hover:bg-gray-200 rounded text-secondary hover:text-blue-600 transition-colors"
+                                            title="测试延迟"
+                                        >
+                                            <RefreshCw className="w-4 h-4" />
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => {
                                             setEditingProxy(proxy);
                                             setEditRemark(proxy.remark || proxy.name);
                                             setEditGroup(proxy.group || "默认分组");
-                                            // 使用与表格显示相同的逻辑
                                             const displayPort = proxy.is_enabled ? proxy.local_port : proxy.last_port;
                                             setEditPort(displayPort || 0);
                                         }}

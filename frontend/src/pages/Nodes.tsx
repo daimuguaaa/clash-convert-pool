@@ -63,6 +63,7 @@ export const NodesPage: React.FC = () => {
     const [portStart, setPortStart] = useState(10000);
     const [portEnd, setPortEnd] = useState(10100);
     const [isEnabling, setIsEnabling] = useState(false);
+    const [enableError, setEnableError] = useState<string | null>(null);
 
     // 单个开启代理弹窗
     const [singleEnableNode, setSingleEnableNode] = useState<ProxyNode | null>(null);
@@ -315,21 +316,23 @@ export const NodesPage: React.FC = () => {
             showToast('info', '请先选择要开启的节点');
             return;
         }
+        setEnableError(null); // 清空之前的错误
         setIsEnableModalOpen(true);
     };
 
     const confirmBatchEnable = async () => {
         if (portStart >= portEnd) {
-            showToast('error', '端口范围无效，结束端口必须大于开始端口');
+            setEnableError('端口范围无效，结束端口必须大于开始端口');
             return;
         }
         const availablePorts = portEnd - portStart;
         if (availablePorts < selectedIds.size) {
-            showToast('error', `端口范围不足，需要 ${selectedIds.size} 个端口，但只有 ${availablePorts} 个可用`);
+            setEnableError(`端口范围不足，需要 ${selectedIds.size} 个端口，但只有 ${availablePorts} 个可用`);
             return;
         }
 
         setIsEnabling(true);
+        setEnableError(null);
         try {
             const res = await fetch('/api/proxies/batch-enable', {
                 method: 'POST',
@@ -344,13 +347,14 @@ export const NodesPage: React.FC = () => {
             if (res.ok) {
                 showToast('success', data.message || `已开启 ${data.enabled} 个代理`);
                 setIsEnableModalOpen(false);
+                setEnableError(null);
                 setSelectedIds(new Set());
                 fetchProxies();
             } else {
-                showToast('error', `开启失败: ${data.detail || '未知错误'}`);
+                setEnableError(`开启失败: ${data.error || data.detail || '未知错误'}`);
             }
         } catch (e) {
-            showToast('error', '开启请求失败');
+            setEnableError('开启请求失败，请检查网络连接');
         } finally {
             setIsEnabling(false);
         }
@@ -1101,6 +1105,18 @@ export const NodesPage: React.FC = () => {
                             <div className="text-sm text-secondary bg-gray-50 rounded p-3">
                                 <p>💡 提示：端口将按顺序分配给选中的节点</p>
                             </div>
+
+                            {/* 错误信息显示 */}
+                            {enableError && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <div className="flex items-start gap-2">
+                                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                        <div className="text-sm text-red-700 break-all">
+                                            {enableError}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="p-4 border-t border-border flex justify-end gap-3 bg-gray-50/50">
                             <button onClick={() => setIsEnableModalOpen(false)} className="btn-secondary">取消</button>

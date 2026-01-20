@@ -26,10 +26,10 @@
 <summary>点击展开查看更多截图</summary>
 
 ### 节点管理
-<img width="100%" alt="节点管理" src="https://github.com/user-attachments/assets/36f4ee89-8370-44a8-9e13-32f6f6dbd4a7" />
+<img width="100%" alt="节点管理" src="https://github.com/user-attachments/assets/5695546a-8534-44c1-b3b6-45e01f13d400" />
 
-### 流量监控
-<img width="100%" alt="流量监控" src="https://github.com/user-attachments/assets/70b5071c-34bb-48ea-b3dd-a86342aa728b" />
+### 代理管理
+<img width="100%" alt="代理管理" src="https://github.com/user-attachments/assets/f42809ca-c914-4eab-a91e-853972d57091" />
 
 ### 系统设置
 <img width="100%" alt="系统设置" src="https://github.com/user-attachments/assets/426a7718-1915-4f4d-ac20-d8d0f4ae9f05" />
@@ -83,7 +83,7 @@ services:
 
 ### `GET` /api/proxies/active
 
-获取所有可用的代理节点列表，返回包含服务器IP、本地端口、认证信息等详细数据的JSON数组。
+获取所有可用的代理节点列表（延迟小于5秒的），返回包含服务器IP、本地端口、认证信息等详细数据的JSON数组。
 
 ```bash
 curl -X GET "http://localhost:8000/api/proxies/active" \
@@ -135,6 +135,7 @@ npm run dev
 
 # 2. 后端
 cd backendgo
+$env:DEV_MODE = "true"
 go run .
 ```
 

@@ -170,6 +170,33 @@ func TestLatency(c *gin.Context) {
 	})
 }
 
+// TestProxyLatency 测试代理延迟（通过本地端口测试）
+func TestProxyLatency(c *gin.Context) {
+	var req TestRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	results, err := services.TestProxyLatencyByIDs(req.IDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "测速失败: " + err.Error()})
+		return
+	}
+
+	successCount := 0
+	for _, v := range results {
+		if v > 0 {
+			successCount++
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "代理测速完成: " + strconv.Itoa(successCount) + "/" + strconv.Itoa(len(results)) + " 个代理可用",
+		"results": results,
+	})
+}
+
 // UpdateProxy 更新代理节点
 func UpdateProxy(c *gin.Context) {
 	idStr := c.Param("id")
@@ -315,11 +342,13 @@ func UpdateProxy(c *gin.Context) {
 				needRestartMihomo = true
 			}
 		} else {
-			// 禁用代理：保留 LastPort，只清除 LocalPort
+			// 禁用代理：保留 LastPort，清除 LocalPort 和健康检查数据
 			if proxy.LocalPort != nil {
 				updates["last_port"] = *proxy.LocalPort // 保存当前端口到 LastPort
 			}
 			updates["local_port"] = nil
+			updates["health_status"] = "unknown" // 清空健康状态
+			updates["proxy_latency"] = -1        // 清空代理延迟
 			needRestartMihomo = true
 		}
 	}
@@ -557,6 +586,8 @@ func BatchDisableProxies(c *gin.Context) {
 		if proxy.IsEnabled {
 			proxy.IsEnabled = false
 			proxy.LocalPort = nil
+			proxy.HealthStatus = "unknown" // 清空健康状态
+			proxy.ProxyLatency = -1        // 清空代理延迟
 			db.Save(&proxy)
 			disabledCount++
 		}
@@ -939,8 +970,9 @@ func GetAvailableProxies(c *gin.Context) {
 	db := database.GetDB()
 	var proxies []models.ProxyNode
 
-	// 查询所有已启用的节点
-	if err := db.Where("is_enabled = ?", true).Find(&proxies).Error; err != nil {
+	// 查询所有已启用且健康的节点
+	// health_status = 'healthy' 或者 health_status = 'unknown'（尚未检查的也返回）
+	if err := db.Where("is_enabled = ? AND (health_status = ? OR health_status = ?)", true, "healthy", "unknown").Find(&proxies).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -961,7 +993,8 @@ func GetRandomAvailableProxy(c *gin.Context) {
 	db := database.GetDB()
 	var proxies []models.ProxyNode
 
-	if err := db.Where("is_enabled = ?", true).Find(&proxies).Error; err != nil {
+	// 查询所有已启用且健康的节点
+	if err := db.Where("is_enabled = ? AND (health_status = ? OR health_status = ?)", true, "healthy", "unknown").Find(&proxies).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

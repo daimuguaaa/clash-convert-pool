@@ -93,6 +93,39 @@ func Init() error {
 				log.Println("添加 port 列到 proxies 表")
 			}
 		}
+
+		// 检查并添加 health_status 列（健康检查状态：healthy/unhealthy/unknown）
+		var healthStatusCount int
+		db.Raw("SELECT COUNT(*) FROM pragma_table_info('proxies') WHERE name='health_status'").Scan(&healthStatusCount)
+		if healthStatusCount == 0 {
+			if err := db.Exec("ALTER TABLE proxies ADD COLUMN health_status TEXT DEFAULT 'unknown'").Error; err != nil {
+				log.Printf("添加 health_status 列失败: %v", err)
+			} else {
+				log.Println("添加 health_status 列到 proxies 表")
+			}
+		}
+
+		// 检查并添加 last_health_check 列（最后健康检查时间）
+		var lastHealthCheckCount int
+		db.Raw("SELECT COUNT(*) FROM pragma_table_info('proxies') WHERE name='last_health_check'").Scan(&lastHealthCheckCount)
+		if lastHealthCheckCount == 0 {
+			if err := db.Exec("ALTER TABLE proxies ADD COLUMN last_health_check DATETIME").Error; err != nil {
+				log.Printf("添加 last_health_check 列失败: %v", err)
+			} else {
+				log.Println("添加 last_health_check 列到 proxies 表")
+			}
+		}
+
+		// 检查并添加 proxy_latency 列（代理实际延迟，与 latency 节点延迟不同）
+		var proxyLatencyCount int
+		db.Raw("SELECT COUNT(*) FROM pragma_table_info('proxies') WHERE name='proxy_latency'").Scan(&proxyLatencyCount)
+		if proxyLatencyCount == 0 {
+			if err := db.Exec("ALTER TABLE proxies ADD COLUMN proxy_latency INTEGER DEFAULT -1").Error; err != nil {
+				log.Printf("添加 proxy_latency 列失败: %v", err)
+			} else {
+				log.Println("添加 proxy_latency 列到 proxies 表")
+			}
+		}
 	}
 
 	// Settings 表迁移

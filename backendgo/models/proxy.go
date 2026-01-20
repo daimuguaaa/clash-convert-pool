@@ -23,6 +23,10 @@ type ProxyNode struct {
 	Protocol  string    `json:"protocol" gorm:"size:50"` // ss, vmess, vless, trojan 等
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+	// 健康检查相关字段（通过代理端口实际测试，与 Latency 节点延迟不同）
+	HealthStatus    string     `json:"health_status" gorm:"size:20;default:unknown"` // healthy/unhealthy/unknown
+	LastHealthCheck *time.Time `json:"last_health_check"`                            // 最后健康检查时间
+	ProxyLatency    int        `json:"proxy_latency" gorm:"default:-1"`              // 代理实际延迟（毫秒）
 }
 
 // TableName 指定表名（与 Python 版本兼容）

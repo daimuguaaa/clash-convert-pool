@@ -41,6 +41,11 @@ func main() {
 	collector.Start()
 	defer collector.Stop()
 
+	// 启动代理健康检查器
+	healthChecker := services.GetHealthChecker()
+	healthChecker.Start()
+	defer healthChecker.Stop()
+
 	// 创建 Gin 引擎
 	r := gin.Default()
 
@@ -78,7 +83,8 @@ func main() {
 			authApi.GET("/proxies/tags", handlers.GetTags)
 			authApi.PUT("/proxies/tags/:old_tag", handlers.RenameTag)
 			authApi.POST("/proxies/import", handlers.ImportNodes)
-			authApi.POST("/proxies/test", handlers.TestLatency)
+			authApi.POST("/proxies/test", handlers.TestLatency)            // 节点测速
+			authApi.POST("/proxies/proxy-test", handlers.TestProxyLatency) // 代理测速（通过本地端口）
 			authApi.PUT("/proxies/:id", handlers.UpdateProxy)
 			authApi.DELETE("/proxies", handlers.DeleteProxies)
 			authApi.GET("/proxies/active", handlers.GetAvailableProxies)

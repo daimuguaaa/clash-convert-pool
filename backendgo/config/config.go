@@ -40,7 +40,8 @@ func initConfig() *Config {
 	var baseDir string
 
 	// 开发模式下使用当前工作目录
-	if os.Getenv("DEV_MODE") == "true" {
+	devMode := os.Getenv("DEV_MODE")
+	if devMode == "true" {
 		// 获取当前工作目录
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -62,27 +63,29 @@ func initConfig() *Config {
 		mihomoBinary = "mihomo.exe"
 	}
 
-	// 搜索可能的路径
+	// 搜索可能的路径（按优先级）
 	possiblePaths := []string{
-		// 1. 同级目录
-		filepath.Join(baseDir, mihomoBinary),
+		// 1. 上级 bin 目录 (开发环境常用结构: backendgo/../bin)
+		filepath.Join(baseDir, "..", "bin", mihomoBinary),
 		// 2. bin 子目录 (发布包常用结构)
 		filepath.Join(baseDir, "bin", mihomoBinary),
-		// 3. 上级 bin 目录 (开发环境常用结构)
-		filepath.Join(baseDir, "..", "bin", mihomoBinary),
+		// 3. 同级目录
+		filepath.Join(baseDir, mihomoBinary),
 	}
 
 	mihomoBinaryPath := ""
 	for _, path := range possiblePaths {
-		if _, err := os.Stat(path); err == nil {
-			mihomoBinaryPath = path
+		// 转换为绝对路径以便调试
+		absPath, _ := filepath.Abs(path)
+		if _, err := os.Stat(absPath); err == nil {
+			mihomoBinaryPath = absPath
 			break
 		}
 	}
 
-	// 如果都没找到，默认回退到 bin 子目录，等待用户放置文件
+	// 如果都没找到，默认回退到上级 bin 目录
 	if mihomoBinaryPath == "" {
-		mihomoBinaryPath = filepath.Join(baseDir, "bin", mihomoBinary)
+		mihomoBinaryPath, _ = filepath.Abs(filepath.Join(baseDir, "..", "bin", mihomoBinary))
 	}
 
 	return &Config{
