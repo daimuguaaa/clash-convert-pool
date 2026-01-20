@@ -106,6 +106,8 @@ type MihomoConfig struct {
 	ExternalController string                   `yaml:"external-controller"`
 	Secret             string                   `yaml:"secret"`
 	AllowLan           bool                     `yaml:"allow-lan"`
+	BindAddress        string                   `yaml:"bind-address"`
+	IPv6               bool                     `yaml:"ipv6"`
 	LogLevel           string                   `yaml:"log-level"`
 	Mode               string                   `yaml:"mode"`
 	Proxies            []map[string]interface{} `yaml:"proxies"`
@@ -200,6 +202,8 @@ func (m *MihomoManager) GenerateConfig(proxies []models.ProxyNode, settings *mod
 		ExternalController: fmt.Sprintf("%s:%d", m.controllerHost, apiPort),
 		Secret:             m.secret,
 		AllowLan:           true, // 允许局域网/公网连接
+		BindAddress:        "*",  // 绑定所有接口
+		IPv6:               true, // 开启 IPv6 支持
 		LogLevel:           "info",
 		Mode:               "rule",
 		Proxies:            proxyConfigs,
@@ -430,6 +434,8 @@ func (m *MihomoManager) GenerateConfigForTest(proxies []models.ProxyNode, settin
 		ExternalController: fmt.Sprintf("%s:%d", m.controllerHost, apiPort),
 		Secret:             m.secret,
 		AllowLan:           true,
+		BindAddress:        "*",
+		IPv6:               true,
 		LogLevel:           "info",
 		Mode:               "rule",
 		Proxies:            proxyConfigs,
