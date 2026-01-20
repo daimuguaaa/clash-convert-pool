@@ -3,6 +3,8 @@
 package services
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"mppm/database"
 	"mppm/models"
@@ -185,7 +187,16 @@ func (h *HealthChecker) testProxyLatency(proxyAddr string, testURL string) (int,
 	}
 	defer resp.Body.Close()
 
+	// 必须读取响应体以确保完整的代理请求完成
+	_, _ = io.ReadAll(resp.Body)
+
 	latency := int(time.Since(start).Milliseconds())
+
+	// 验证响应状态码 (204 No Content 或 2xx 都视为成功)
+	if resp.StatusCode != http.StatusNoContent && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+		return latency, fmt.Errorf("代理返回非成功状态码: %d", resp.StatusCode)
+	}
+
 	return latency, nil
 }
 
@@ -286,6 +297,15 @@ func testProxyLatencyDirect(proxyAddr string, testURL string) (int, error) {
 	}
 	defer resp.Body.Close()
 
+	// 必须读取响应体以确保完整的代理请求完成
+	_, _ = io.ReadAll(resp.Body)
+
 	latency := int(time.Since(start).Milliseconds())
+
+	// 验证响应状态码 (204 No Content 或 2xx 都视为成功)
+	if resp.StatusCode != http.StatusNoContent && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+		return latency, fmt.Errorf("代理返回非成功状态码: %d", resp.StatusCode)
+	}
+
 	return latency, nil
 }

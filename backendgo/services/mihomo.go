@@ -229,6 +229,8 @@ func (m *MihomoManager) Start() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	log.Printf("Mihomo 启动参数: 二进制=%s, 工作目录=%s, 配置文件=%s", m.binaryPath, m.workDir, m.configPath)
+
 	// 检查二进制文件是否存在
 	if _, err := os.Stat(m.binaryPath); os.IsNotExist(err) {
 		return fmt.Errorf("Mihomo 二进制文件不存在: %s", m.binaryPath)

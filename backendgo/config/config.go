@@ -54,8 +54,12 @@ func initConfig() *Config {
 		baseDir = filepath.Dir(execPath)
 	}
 
-	dataDir := filepath.Join(baseDir, "..", "data")
-	mihomoWorkDir := filepath.Join(dataDir, "mihomo")
+	// 计算默认数据目录（可被环境变量覆盖）
+	defaultDataDir := filepath.Join(baseDir, "..", "data")
+	actualDataDir := getEnv("DATA_DIR", defaultDataDir)
+
+	// MihomoWorkDir 基于实际使用的 DataDir 计算
+	defaultMihomoWorkDir := filepath.Join(actualDataDir, "mihomo")
 
 	// 确定 Mihomo 二进制文件名
 	mihomoBinary := "mihomo"
@@ -90,10 +94,10 @@ func initConfig() *Config {
 
 	return &Config{
 		ServerPort:       getEnv("SERVER_PORT", "8000"),
-		DataDir:          getEnv("DATA_DIR", dataDir),
+		DataDir:          actualDataDir,
 		DBFileName:       "database.db",
 		MihomoBinaryPath: getEnv("MIHOMO_BINARY", mihomoBinaryPath),
-		MihomoWorkDir:    getEnv("MIHOMO_WORK_DIR", mihomoWorkDir),
+		MihomoWorkDir:    getEnv("MIHOMO_WORK_DIR", defaultMihomoWorkDir),
 	}
 }
 
