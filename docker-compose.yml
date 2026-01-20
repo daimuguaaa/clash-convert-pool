@@ -3,12 +3,16 @@ services:
     build: .
     container_name: mppm
     restart: unless-stopped
-    ports:
-      - "8000:8000" # Web 界面和 API
-      # 代理端口需要根据你的配置添加，例如：
-      # - "30000:30000"
-      # - "30001:30001"
-      # 或者使用 network_mode: host 来暴露所有端口
+    # network_mode: host 模式可以让容器直接利用宿主机的网络栈，
+    # 这样你就无需手动映射每一个动态开启的代理端口 (30000, 30001, etc)。
+    # 只要在 Web 界面开启了端口，宿主机就能直接访问。
+    network_mode: "host"
+    # ports:
+    #   - "8000:8000" # Web 界面和 API
+    #   # 代理端口需要根据你的配置添加，例如：
+    #   # - "30000:30000"
+    #   # - "30001:30001"
+    #   # 或者使用 network_mode: host 来暴露所有端口
     volumes:
       - ./docker-data:/app/data # 数据持久化
     environment:

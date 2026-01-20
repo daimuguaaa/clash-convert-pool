@@ -114,11 +114,12 @@ type MihomoConfig struct {
 
 // ListenerConfig 监听器配置
 type ListenerConfig struct {
-	Name  string         `yaml:"name"`
-	Type  string         `yaml:"type"`
-	Port  int            `yaml:"port"`
-	Proxy string         `yaml:"proxy"`
-	Users []ListenerUser `yaml:"users,omitempty"`
+	Name   string         `yaml:"name"`
+	Type   string         `yaml:"type"`
+	Port   int            `yaml:"port"`
+	Listen string         `yaml:"listen"`
+	Proxy  string         `yaml:"proxy"`
+	Users  []ListenerUser `yaml:"users,omitempty"`
 }
 
 // ListenerUser 监听器用户认证信息
@@ -174,10 +175,11 @@ func (m *MihomoManager) GenerateConfig(proxies []models.ProxyNode, settings *mod
 			}
 
 			listener := ListenerConfig{
-				Name:  fmt.Sprintf("inbound_%d", *proxy.LocalPort),
-				Type:  "mixed", // 同时支持 HTTP 和 SOCKS5
-				Port:  *proxy.LocalPort,
-				Proxy: proxyName,
+				Name:   fmt.Sprintf("inbound_%d", *proxy.LocalPort),
+				Type:   "mixed", // 同时支持 HTTP 和 SOCKS5
+				Port:   *proxy.LocalPort,
+				Listen: "0.0.0.0",
+				Proxy:  proxyName,
 			}
 
 			// 添加认证
