@@ -18,3 +18,4 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - GIN_MODE=release
+      - DATA_DIR=/app/data # 强制指定数据目录，防止路径计算错误

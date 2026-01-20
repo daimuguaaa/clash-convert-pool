@@ -51,6 +51,8 @@ COPY --from=backend-builder /app/mppm /app/mppm
 ENV TZ=Asia/Shanghai
 # 设置 Gin 为发布模式
 ENV GIN_MODE=release
+# 强制设置数据目录（修复路径计算问题）
+ENV DATA_DIR=/app/data
 
 # 暴露端口
 EXPOSE 8000
