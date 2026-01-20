@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-primary antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+}
+
+/* 增加 tooltip 停留时间的样式 */
+[title] {
+  position: relative;
+}
+
+[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  animation: tooltipFadeIn 0.2s ease-in-out 0.5s forwards;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Custom adjustments for Rational Modernism */
+.sidebar-link {
+    @apply flex items-center px-3 py-2 text-sm font-medium text-secondary rounded-md hover:bg-gray-100 hover:text-black transition-colors;
+}
+
+.sidebar-link.active {
+    @apply bg-gray-200 text-black;
+}
+
+.btn-primary {
+    @apply bg-black text-white px-4 py-2 text-sm font-medium hover:bg-gray-800 transition-colors rounded;
+}
+
+.btn-secondary {
+    @apply bg-white text-black border border-border px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors rounded;
+}
+
+.input-base {
+    @apply px-3 py-2 bg-white border border-border text-sm focus:outline-none focus:border-black transition-colors rounded w-full;
+}

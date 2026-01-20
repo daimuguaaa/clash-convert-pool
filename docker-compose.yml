@@ -1,0 +1,16 @@
+services:
+  mppm:
+    build: .
+    container_name: mppm
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Web 界面和 API
+      # 代理端口需要根据你的配置添加，例如：
+      # - "30000:30000"
+      # - "30001:30001"
+      # 或者使用 network_mode: host 来暴露所有端口
+    volumes:
+      - ./docker-data:/app/data # 数据持久化
+    environment:
+      - TZ=Asia/Shanghai
+      - GIN_MODE=release
