@@ -105,6 +105,7 @@ func checkPortsAvailable(listeners []ListenerConfig) []int {
 type MihomoConfig struct {
 	ExternalController string                   `yaml:"external-controller"`
 	Secret             string                   `yaml:"secret"`
+	AllowLan           bool                     `yaml:"allow-lan"`
 	LogLevel           string                   `yaml:"log-level"`
 	Mode               string                   `yaml:"mode"`
 	Proxies            []map[string]interface{} `yaml:"proxies"`
@@ -198,6 +199,7 @@ func (m *MihomoManager) GenerateConfig(proxies []models.ProxyNode, settings *mod
 	cfg := MihomoConfig{
 		ExternalController: fmt.Sprintf("%s:%d", m.controllerHost, apiPort),
 		Secret:             m.secret,
+		AllowLan:           true, // 允许局域网/公网连接
 		LogLevel:           "info",
 		Mode:               "rule",
 		Proxies:            proxyConfigs,
@@ -427,6 +429,7 @@ func (m *MihomoManager) GenerateConfigForTest(proxies []models.ProxyNode, settin
 	cfg := MihomoConfig{
 		ExternalController: fmt.Sprintf("%s:%d", m.controllerHost, apiPort),
 		Secret:             m.secret,
+		AllowLan:           true,
 		LogLevel:           "info",
 		Mode:               "rule",
 		Proxies:            proxyConfigs,
