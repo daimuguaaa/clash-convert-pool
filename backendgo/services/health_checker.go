@@ -104,11 +104,20 @@ func (h *HealthChecker) checkAllProxies() {
 
 	log.Printf("[健康检查] 开始检查 %d 个代理...", len(proxies))
 
-	// 获取测试URL（从设置中读取）
+	// 获取测试URL和认证设置（从设置中读取）
 	settings := GetOrCreateSettings()
 	testURL := settings.TestURL
 	if testURL == "" {
 		testURL = h.testURL
+	}
+
+	// 获取认证信息
+	var authUsername, authPassword string
+	if settings.AuthUsername != nil {
+		authUsername = *settings.AuthUsername
+	}
+	if settings.AuthPassword != nil {
+		authPassword = *settings.AuthPassword
 	}
 
 	// 并发检查所有代理
@@ -117,7 +126,7 @@ func (h *HealthChecker) checkAllProxies() {
 		wg.Add(1)
 		go func(proxy *models.ProxyNode) {
 			defer wg.Done()
-			h.checkSingleProxy(proxy, testURL)
+			h.checkSingleProxy(proxy, testURL, authUsername, authPassword)
 		}(&proxies[i])
 	}
 	wg.Wait()
@@ -126,13 +135,22 @@ func (h *HealthChecker) checkAllProxies() {
 }
 
 // checkSingleProxy 检查单个代理
-func (h *HealthChecker) checkSingleProxy(proxy *models.ProxyNode, testURL string) {
+func (h *HealthChecker) checkSingleProxy(proxy *models.ProxyNode, testURL string, authUsername string, authPassword string) {
 	if proxy.LocalPort == nil {
 		return
 	}
 
 	localPort := *proxy.LocalPort
-	proxyAddr := "http://127.0.0.1:" + strconv.Itoa(localPort)
+	// 构建代理地址，如果配置了认证则添加认证信息
+	var proxyAddr string
+	if authUsername != "" && authPassword != "" {
+		proxyAddr = fmt.Sprintf("http://%s:%s@127.0.0.1:%d",
+			url.QueryEscape(authUsername),
+			url.QueryEscape(authPassword),
+			localPort)
+	} else {
+		proxyAddr = "http://127.0.0.1:" + strconv.Itoa(localPort)
+	}
 
 	latency, err := h.testProxyLatency(proxyAddr, testURL)
 
@@ -215,12 +233,21 @@ func TestProxyLatencyByIDs(ids []int64) (map[int64]int, error) {
 		return results, nil
 	}
 
-	// 获取测试 URL
+	// 获取测试 URL 和认证设置
 	var settings models.Settings
 	db.First(&settings)
 	testURL := settings.TestURL
 	if testURL == "" {
 		testURL = "http://www.gstatic.com/generate_204"
+	}
+
+	// 获取认证信息
+	var authUsername, authPassword string
+	if settings.AuthUsername != nil {
+		authUsername = *settings.AuthUsername
+	}
+	if settings.AuthPassword != nil {
+		authPassword = *settings.AuthPassword
 	}
 
 	// 并发测试
@@ -237,7 +264,16 @@ func TestProxyLatencyByIDs(ids []int64) (map[int64]int, error) {
 			}
 
 			localPort := *proxy.LocalPort
-			proxyAddr := "http://127.0.0.1:" + strconv.Itoa(localPort)
+			// 构建代理地址，如果配置了认证则添加认证信息
+			var proxyAddr string
+			if authUsername != "" && authPassword != "" {
+				proxyAddr = fmt.Sprintf("http://%s:%s@127.0.0.1:%d",
+					url.QueryEscape(authUsername),
+					url.QueryEscape(authPassword),
+					localPort)
+			} else {
+				proxyAddr = "http://127.0.0.1:" + strconv.Itoa(localPort)
+			}
 
 			latency, err := testProxyLatencyDirect(proxyAddr, testURL)
 

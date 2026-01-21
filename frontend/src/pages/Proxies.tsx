@@ -475,6 +475,18 @@ export const ProxiesPage: React.FC = () => {
                             </button>
                         </div>
                     )}
+                    {/* 认证状态指示器 */}
+                    {authUsername && authPassword ? (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-green-50 text-green-700 border border-green-200" title={`认证账号: ${authUsername}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                            已启用认证
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-gray-50 text-gray-500 border border-gray-200" title="未配置代理认证，可在系统设置中配置">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                            未启用认证
+                        </span>
+                    )}
                     <button
                         onClick={fetchProxies}
                         className="btn-secondary flex items-center gap-2"
